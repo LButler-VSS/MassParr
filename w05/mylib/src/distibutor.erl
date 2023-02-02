@@ -23,7 +23,7 @@
 
 %%% Created : 24 June 2022 by Lee Barney <barney.cit@gmail.com>
 %%%-------------------------------------------------------------------
--module(gen_statem_template).
+-module(distibutor).
 -behaviour(gen_statem).
 
 %% Only include the eunit testing library
@@ -108,7 +108,7 @@ callback_mode() -> handle_event_function.
 %% @private
 handle_event({call,From}, next, ready,{Worker_ids,Position}) ->
     %Modify the state data and replace State_data below with the modified state data.
-    Process = lists:nth(Position,Worker_ids),
+    Process = lists:nth(Position + 1,Worker_ids),
     {next_state, ready,{Worker_ids,(Position + 1) rem 10},[{reply,From,Process}]}.
 
 
