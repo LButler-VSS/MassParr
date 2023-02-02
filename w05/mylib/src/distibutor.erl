@@ -96,7 +96,7 @@ code_change(_Vsn, State, Data, _Extra) ->
 init(Worker_ids) ->
     %% Set the initial state to be the list of available Worker_ids
     %% and types.
-    {ok,ready,Worker_ids}.
+    {ok,ready,{Worker_ids,0}}.
 %% @private
 callback_mode() -> handle_event_function.
 
@@ -106,9 +106,10 @@ callback_mode() -> handle_event_function.
 %% Used to select which registered worker is to be used next in 
 %% a round robin fashion.
 %% @private
-handle_event({call,From}, next, ready,{Statem_name,State_data}) ->
+handle_event({call,From}, next, ready,{Worker_ids,Position}) ->
     %Modify the state data and replace State_data below with the modified state data.
-    {next_state, ready,{Statem_name,State_data},[{reply,From,Statem_name}]}.
+    Process = lists:nth(Position,Worker_ids),
+    {next_state, ready,{Worker_ids,(Position + 1) rem 10},[{reply,From,Process}]}.
 
 
 %% This code is included in the compiled code only if 
