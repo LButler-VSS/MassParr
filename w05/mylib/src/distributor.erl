@@ -23,7 +23,7 @@
 
 %%% Created : 24 June 2022 by Lee Barney <barney.cit@gmail.com>
 %%%-------------------------------------------------------------------
--module(distibutor).
+-module(distributor).
 -behaviour(gen_statem).
 
 %% Only include the eunit testing library
@@ -34,7 +34,7 @@
 -endif.
 
 %% API
--export([start/2,start_link/2,stop/1]).
+-export([start/1,start_link/1,stop/1,call/0]).
 
 %% Supervisor Callbacks
 -export([terminate/3,code_change/4,init/1,callback_mode/0]).
@@ -54,9 +54,9 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec start(atom(),term()) -> {ok, atom()}.
-start(Statem_name,Initial_state) ->
-    gen_statem:start({local,Statem_name}, ?MODULE, Initial_state, []).
+-spec start(term()) -> {ok, atom()}.
+start(Initial_state) ->
+    gen_statem:start({local,?MODULE}, ?MODULE, Initial_state, []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -66,9 +66,9 @@ start(Statem_name,Initial_state) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec start_link(atom(),term()) -> {ok, atom()}.
-start_link(Statem_name,Initial_state) ->
-    gen_statem:start_link({local,Statem_name},?MODULE,Initial_state,[]).
+-spec start_link(term()) -> {ok, atom()}.
+start_link(Initial_state) ->
+    gen_statem:start_link({local,?MODULE},?MODULE,Initial_state,Initial_state).
 
 
 %%--------------------------------------------------------------------
@@ -96,20 +96,21 @@ code_change(_Vsn, State, Data, _Extra) ->
 init(Worker_ids) ->
     %% Set the initial state to be the list of available Worker_ids
     %% and types.
-    {ok,ready,{Worker_ids,0}}.
+    {ok,ready,Worker_ids}.
 %% @private
 callback_mode() -> handle_event_function.
 
 %%% state callback(s)
+call() ->
+    gen_statem:call(distributor,next).
 
 %%
 %% Used to select which registered worker is to be used next in 
 %% a round robin fashion.
 %% @private
-handle_event({call,From}, next, ready,{Worker_ids,Position}) ->
+handle_event({call,From}, next, ready,[H|T]) ->
     %Modify the state data and replace State_data below with the modified state data.
-    Process = lists:nth(Position + 1,Worker_ids),
-    {next_state, ready,{Worker_ids,(Position + 1) rem 10},[{reply,From,Process}]}.
+    {next_state, ready,lists:append(T,[H]),[{reply,From,H}]}.
 
 
 %% This code is included in the compiled code only if 

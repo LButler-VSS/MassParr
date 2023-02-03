@@ -49,7 +49,7 @@ init([]) ->
                   generate_spec(calculator,worker_8,worker),
                   generate_spec(calculator,worker_9,worker),
                   generate_spec(calculator,worker_0,worker),
-                  generate_spec(distribitor,Worker_ids)],
+                  generate_spec(distributor,Worker_ids)],
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions
@@ -69,7 +69,7 @@ generate_spec(Module,Args)->
 %%                                                  % gen_event manager with some unknown types of gen_event handler
 %%                                                  % modules to be added later.  
         #{id => Module,
-          start => {Module,start_link,Args},
+          start => {Module,start_link,[Args]},
           restart => permanent,
           shutdown => 2000,
           type => worker,
