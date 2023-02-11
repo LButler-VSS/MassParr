@@ -23,7 +23,7 @@
 
 %%% Created : 24 June 2022 by Lee Barney <barney.cit@gmail.com>
 %%%-------------------------------------------------------------------
--module(distributor).
+-module(app_cont).
 -behaviour(gen_statem).
 
 %% Only include the eunit testing library
@@ -85,6 +85,10 @@ start_link(Initial_state) ->
 stop(Statem_name) ->
     gen_statem:stop(Statem_name).
 
+make_dict() ->
+    CommList = [{add,fun(X) -> X + 1 end},{minus, fun(X) -> X - 1 end},{multiply, fun(X) -> X * 2 end},{rekt, fun() -> 'lol get rekt' end}],
+    dict:from_list(CommList).
+
 %% Mandatory callback functions
 %% @private
 terminate(_Reason, _State, _Data) ->
@@ -96,7 +100,7 @@ code_change(_Vsn, State, Data, _Extra) ->
 init(Worker_ids) ->
     %% Set the initial state to be the list of available Worker_ids
     %% and types.
-    {ok,ready,Worker_ids}.
+    {ok,ready,make_dict()}.
 %% @private
 callback_mode() -> handle_event_function.
 
@@ -108,10 +112,15 @@ call() ->
 %% Used to select which registered worker is to be used next in 
 %% a round robin fashion.
 %% @private
-handle_event({call,From}, next, ready,[H|T]) ->
+handle_event({call,From}, {command, Command, Args}, ready, Dict) ->
     %Modify the state data and replace State_data below with the modified state data.
-    {next_state, ready,lists:append(T,[H]),[{reply,From,H}]}.
-
+    {Ok_Error, Value} = dict:find(Command, Dict),
+    case Ok_Error of
+         ok -> Result = apply(Value, Args),
+         {next_state, ready,Dict,[{reply,From,{ok, Result}}]};
+         error -> 
+            {next_state, ready,Dict,[{reply,From,{error, nil}}]}
+    end.
 
 %% This code is included in the compiled code only if 
 %% 'rebar3 eunit' is being executed.
@@ -122,20 +131,27 @@ handle_event({call,From}, next, ready,[H|T]) ->
 start_test() ->
     {setup,
         fun() -> 2 end,
-        fun() -> gen_server:stop(?SERVER), gen_server:stop(testing_name) end,
-        [?_assertEqual(ok, start()), ?_assertEqual(ok,start(local,testing_name))]}.
+        fun() -> gen_statem:stop(?MODULE) end,
+        [?_assertEqual(ok, start([]))]}.
 
 stop_test() ->
     {setup,
-        fun() -> gen_server:start_link({local, add}, ?MODULE, [], []) end,
+        fun() -> gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []) end,
         fun() -> ok end,
-        [?_assertEqual(ok, stop())]}.
+        [fun() -> io:fwrite("Heck\n") end,
+         ?_assertEqual(hi, stop(?MODULE))]}.
 
-handle_events_() ->
-    [?_assertMatch(10, add([2,3,4,1])),
-    ?_assertMatch(7, add([7])),
-    ?_assertMatch(7, add(7)),
-    ?_assertMatch(nil, add([]))].
+handle_events_test() ->
+    {setup,
+        fun() -> gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []) end,
+        fun() -> gen_statem:stop(?MODULE) end,
+        [?_assertMatch({ok, 5}, gen_statem:call(?MODULE, {command, add, [4]})),
+         ?_assertMatch({ok, 3}, gen_statem:call(?MODULE, {command, minus, [4]})),
+         ?_assertMatch({ok, 8}, gen_statem:call(?MODULE, {command, multiply, [4]})),
+         ?_assertMatch({ok, 'lol get rekt'}, gen_statem:call(?MODULE, {command, rekt, []})),
+         ?_assertMatch({error, nil}, gen_statem:call(?MODULE, {command, divide, [4]})),
+         ?_assertMatch({ok, 5}, gen_statem:call(?MODULE, {command, add, []}))]
+    }.
 
 
 -endif.

@@ -221,7 +221,8 @@ sub_test_() ->
     ?_assertMatch(7, sub(7,0))].
 
 multi_test_() ->
-    [?_assertMatch(24, mult([2,3,4,1])),
+    [io:fwrite("Heck\n"),
+    ?_assertMatch(24, mult([2,3,4,1])),
     ?_assertMatch(7, mult([7])),
     ?_assertMatch(7, mult(7)),
     ?_assertMatch(nil, mult([]))].
@@ -234,7 +235,8 @@ handle_call_test() ->
     {setup,
         fun() -> gen_server:start_link({local, handle_test}, ?MODULE, [], []) end,
         fun() -> gen_server:stop(handle_test) end,
-        [?_assertMatch(10, gen_server:call(handle_test, {add, [1,2,3,4]})),
+        [,
+    ?_assertMatch(10, gen_server:call(handle_test, {add, [1,2,3,4]})),
         ?_assertMatch(3, gen_server:call(handle_test, {sub, {5,2}})),
         ?_assertMatch(24, gen_server:call(handle_test, {mult, [1,2,3,4]})),
         ?_assertMatch(5, gen_server:call(handle_test, {divide, {10,2}})),
